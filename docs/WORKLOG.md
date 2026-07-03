@@ -1,0 +1,49 @@
+# 工作内容与计划
+
+## 已完成工作
+
+### 1. RTF 集成编译验证（Task 6）
+- **Mixin 签名修复**：查证 RTF `StrataRule.apply` 实际签名，发现返回 private 内部类 `Source`。改用 `CallbackInfoReturnable<Object>` 绕过 protected 访问限制。
+- **RTF jar 补丁构建**：GitHub 直连 SSL 失败，采用“补丁 jar”方案——从 GitHub MCP 逐文件下载 5 个修改的 RTF 源文件，用 `gradlew printCompileClasspath` 导出 classpath，`javac --release 21` 编译后 `jar uf` 注入旧 jar。
+- **GeologyProviders import 修正**：`WorldGenLevel` 路径多了 `.levelgen`，修正后级联的 6 个“引用不明确”错误全部消失。
+- **结果**：`compileJava` + `runData`（228 文件）均 BUILD SUCCESSFUL。
+
+### 2. runClient 游戏内实测
+- **首次崩溃修复**：Mixin 拦截 `StrataRule.apply` 返回 null → `ImmutableList.Builder.add` NPE。根因：`apply` 返回 `SurfaceRule` 是非 null 契约。修复为拦截 `StrataRule$Source.tryApply` 返回 `BlockState` null（合法契约）。
+- **实测结果**：客户端成功进入世界，RTF 集成日志确认（`cell populator registered`），区块生成正常，无 ERROR/Exception。
+
+### 3. 删除鉴定完成聊天提示
+- `IdentificationTableBlockEntity` 移除 `sendSystemMessage`，保留图鉴记录。
+- 中英文语言文件移除 `msg.geology.identification.complete` 键。
+
+### 4. 未鉴定矿石敲击次数系统
+- **需求**：地质锤敲未鉴定矿石 3 次后矿石方块消失（原先无限敲击）。
+- **实现**：
+  - `UnidentifiedOreBlockEntity` 新增 `hitsRemaining`（默认 `MAX_HITS=3`）+ `consumeHit()` + NBT 持久化。
+  - `GeologicalHammerItem.handleUnidentifiedOre` 掉落样本后调用 `consumeHit()`，归零则 `level.removeBlock`。
+  - 煤阶矿石与岩石方块不受影响（仍无限敲击）。
+- **编译**：BUILD SUCCESSFUL。
+
+### 5. 岩心柱 tooltip 默认显示地层序列
+- **需求**：原 `F3+H` 高级模式不生效，用户无法查看地层详情。
+- **实现**：移除 `flag.isAdvanced()` 检查，默认显示完整地层序列。
+- **调试验证**：`appendHoverText` 被调用 27+ 次，`sample=not null, layers=2`，数据同步正常。
+
+## 当前状态
+- 代码已编译通过，`runClient` 游戏内验证 tooltip 默认显示地层序列。
+- RTF 集成完整启用，Populator 注册成功，地层替换由地质学 feature 阶段接管。
+
+## 后续计划
+
+### 短期
+- [ ] `runClient` 验证：地质锤敲未鉴定矿石 3 次后方块消失。
+- [ ] 验证：岩心柱 tooltip 默认显示完整地层序列。
+
+### 中期
+- [ ] 洞穴系统生成（参考 JJThunder/Tectonic/Subterranean Wilderness）。
+- [ ] 限高扩展：支持 -1024~2032 高度范围。
+- [ ] RTF jar 正式构建：从 `feature/geology-backend` 分支完整构建替换补丁 jar（当前为补丁注入）。
+
+### 架构待优化
+- [ ] `GeologyAccessor.from()` 的 `lookup.applyCell(x, z)` 签名 bug 修复（当前地质学侧绕过此接口）。
+- [ ] 物品模型 JSON 缺失 WARN 排查（2 个非关键警告）。
