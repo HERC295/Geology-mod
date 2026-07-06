@@ -1,5 +1,17 @@
 # 更新日志
 
+## 2026-07-06
+
+### 修复
+- **GUI 文字错乱**：三个 Screen 的 `imageHeight=190` 非 vanilla 标准，导致底部 24px 空白、文字与分隔线重叠。
+  - `IdentificationScreen` / `CoreRigScreen` 改为标准 `imageHeight=166`。
+  - `CoreRigScreen` 移除槽位标签（与顶行分隔线 y=36 重叠，且信息已在状态面板显示）。
+  - `IdentificationScreen` 移除独立提示行（与 `inventoryLabelY=72` 重叠），将提示整合到右侧面板首行。
+  - `GeologyScreenUtils.PANEL_HEIGHT` 从 80 调整为 64，适配新高度。
+- **AlmanacScreen 网格溢出**：3 列 × 80px = 240px 超过 `imageWidth=220`，矿物名被截断。
+  - 尺寸改为 `255×169`（8 + 240 + 7 = 255），网格完整显示。
+  - 新增渐变背景 + 标题栏 + 行列分隔线，视觉风格与其他 GUI 统一。
+
 ## 2026-06-30
 
 ### 新增
@@ -13,12 +25,9 @@
   - 掉落样本后调用 `oreBE.consumeHit()`，归零则 `level.removeBlock(pos, false)` 移除方块。
   - 移除方块时不产生额外掉落物（样本已由上方掉落）。
   - 煤阶矿石与岩石方块的逻辑不变（仍为无限敲击）。
-- **岩心柱 tooltip**（`CoreSampleItem.appendHoverText`）：
-  - 移除 `F3+H` 高级模式限制，默认显示完整地层序列。
-  - 删除 `advanced_for_details` 翻译键。
 
 ### 删除
-- **鉴定完成聊天提示**：删除“已鉴定为：%s！”消息。
+- **鉴定完成聊天提示**：删除"已鉴定为：%s！"消息。
   - `IdentificationTableBlockEntity` 移除 `player.sendSystemMessage(...)` 调用，保留图鉴记录逻辑。
   - `GeologyZhCnProvider` / `GeologyEnUsProvider` 移除 `msg.geology.identification.complete` 翻译键。
 
