@@ -1,5 +1,32 @@
 # 更新日志
 
+## 2026-07-06 (第 3 轮)
+
+### 修复
+- **GUI 文字偏下**：三个 Screen 的标题与右侧描述文字超出标题栏色条。
+  - `CoreRigScreen` / `IdentificationScreen` / `AlmanacScreen` 的 `titleLabelY` 从 6 改为 2。
+  - `CoreRigScreen` 状态面板 Y 从 18 改为 13,行高压缩。
+  - `IdentificationScreen` 属性面板 Y 从 18 改为 13,候选列表 Y 从 58 改为 54。
+- **候选矿物空样本提示**：无样本时"候选矿物：(无样本)"冗余显示。
+  - `IdentificationScreen.renderCandidates` 改为 `candidates.isEmpty()` 时整体不显示(包括标题)。
+- **鉴定结果不唯一**：`GARNET` 与 `TOURMALINE` 鉴定特征完全相同(同为 CRYSTAL_COLORED + 白色条痕 + 7.0F 硬度 + 无磁性 + 无酸反应),四个测试做完后候选列表仍显示两个,样本无法转换。
+  - `MineralType.GARNET` 硬度从 7.0F 改为 6.5F(地质学合理:石榴石硬度范围 6.5-7.5)。
+  - CRYSTAL_COLORED 组四种矿物硬度各不相同:APATITE 5.0 / GARNET 6.5 / TOURMALINE 7.0 / ZIRCON 7.5。
+
+### 重构
+- **DRY 整合:ROCK_NOISE_SEED_MASK 单一来源**:`0xC2B2AE3D27D4EB4FL` 在 `GeologyGenerator` 和 `IntegratedGeologyProvider` 重复定义,目的是让独立/集成模式 rockNoise 一致。
+  - 提取到 `RockStrata.ROCK_NOISE_SEED_MASK` 作为 public 常量,两处引用改为 `RockStrata.ROCK_NOISE_SEED_MASK`。
+  - 删除 `IntegratedGeologyProvider` 的本地重复常量。
+
+### 检查
+- **RTF 最新源码重合检查**:从 GitHub `Knowledge-book-QwQ/ReTerraForged` 1.21.1 分支获取最新源码,与地质学模组全面对比。
+  - **StrataRule**:RTF 内置地层规则,与 `RockStrataFeature` 职责重叠 → 已由 `GeologyRTFStrataMixin` 拦截 `StrataRule$Source.tryApply` 返回 null 禁用,职责归地质学 feature 阶段。Mixin 拦截点经源码验证正确(`tryApply` 返回 `@Nullable BlockState`,null 是合法契约)。
+  - **Cell**:RTF 源码无 geology 字段,4 个 geology 字段(`geologyProvinceId`/`geologyDisturbance`/`geologyGradient`/`geologyStrataSeed`)仍由补丁 jar 注入,必需。
+  - **GeneratorContext / RTFRandomState**:RTF 源码接口与 `IntegratedGeologyProvider` / `RTFAccess` 调用一致,无重合。
+  - **feature 目录**:RTF 的 BushFeature/ErodeFeature 等为地表装饰,与 `RockStrataFeature`(地层替换)/`MineralVeinFeature`(矿脉)职责不同,无重合。
+  - **rock 标签**:RTF 有 `data/reterraforged/tags/block/rock.json`,地质学用原版 `STONE_ORE_REPLACEABLES`,命名空间不同,无重合。
+  - **结论**:无真正重合,三层隔离架构(Mixin + Populator + Provider)清晰。
+
 ## 2026-07-06
 
 ### 修复
